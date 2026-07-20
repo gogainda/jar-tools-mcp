@@ -1,0 +1,85 @@
+name: Install smoke test
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  install-in-mcp-clients:
+    runs-on: ubuntu-latest
+    env:
+      CODEX_HOME: ${{ runner.temp }}/codex
+      CLAUDE_CONFIG_DIR: ${{ runner.temp }}/claude
+      DISABLE_AUTOUPDATER: "1"
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Build and test package
+        run: |
+          npm ci
+          npm test
+          npm run build
+
+      - name: Pack and install CLIs
+        run: |
+          npm pack --pack-destination "$RUNNER_TEMP"
+          npm install --global \
+            "$RUNNER_TEMP"/igorstechnoclub-jar-tools-mcp-*.tgz \
+            @openai/codex@latest \
+            @anthropic-ai/claude-code@latest
+          command -v jar-tools-mcp
+          codex --version
+          claude --version
+
+      - name: Verify MCP server handshake
+        run: |
+          node --input-type=module <<'EOF'
+          import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+          import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+
+          const client = new Client({ name: "install-smoke-test", version: "1.0.0" });
+          const transport = new StdioClientTransport({ command: "jar-tools-mcp" });
+
+          try {
+            await client.connect(transport);
+            const { tools } = await client.listTools();
+            if (!tools.some(({ name }) => name === "scan_jar_security")) {
+              throw new Error("scan_jar_security was not advertised");
+            }
+          } finally {
+            await client.close();
+          }
+          EOF
+
+      - name: Verify Codex installation
+        run: |
+          mkdir -p "$CODEX_HOME"
+          codex mcp add jar-tools -- jar-tools-mcp
+          codex mcp get jar-tools --json > "$RUNNER_TEMP/codex-mcp.json"
+          node -e '
+            const config = require(process.argv[1]);
+            if (config.transport?.command !== "jar-tools-mcp") {
+              throw new Error("Codex did not register jar-tools-mcp");
+            }
+          ' "$RUNNER_TEMP/codex-mcp.json"
+
+      - name: Verify Claude Code installation
+        run: |
+          mkdir -p "$CLAUDE_CONFIG_DIR"
+          claude mcp add --scope user jar-tools -- jar-tools-mcp
+          claude mcp get jar-tools | tee "$RUNNER_TEMP/claude-mcp.txt"
+          grep -F "Connected" "$RUNNER_TEMP/claude-mcp.txt"
