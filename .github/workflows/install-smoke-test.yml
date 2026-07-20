@@ -14,8 +14,6 @@ jobs:
   install-in-mcp-clients:
     runs-on: ubuntu-latest
     env:
-      CODEX_HOME: ${{ runner.temp }}/codex
-      CLAUDE_CONFIG_DIR: ${{ runner.temp }}/claude
       DISABLE_AUTOUPDATER: "1"
 
     steps:
@@ -27,6 +25,11 @@ jobs:
         with:
           node-version: 20
           cache: npm
+
+      - name: Isolate client configuration
+        run: |
+          echo "CODEX_HOME=$RUNNER_TEMP/codex" >> "$GITHUB_ENV"
+          echo "CLAUDE_CONFIG_DIR=$RUNNER_TEMP/claude" >> "$GITHUB_ENV"
 
       - name: Build and test package
         run: |
