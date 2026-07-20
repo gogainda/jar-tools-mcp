@@ -7,10 +7,15 @@ import {
   ListToolsRequestSchema,
   Tool,
 } from "@modelcontextprotocol/sdk/types.js";
-import { readFile } from "fs/promises";
+import { openAsBlob } from "fs";
+import { stat } from "fs/promises";
 import { basename } from "path";
 
 const JAR_TOOLS_BASE_URL = process.env.JARTOOLS_BASE_URL || "https://jar.tools";
+const SCAN_TIMEOUT_MS = 60_000;
+const FREE_JAR_SIZE_LIMIT = 64 * 1024 * 1024;
+const PRO_JAR_SIZE_LIMIT = 256 * 1024 * 1024;
+const CLASS_SIZE_LIMIT = 5 * 1024 * 1024;
 
 interface ScanResultData {
   class_count?: number;
@@ -63,20 +68,30 @@ export async function scanJarSecurity(
 ): Promise<ScanResult> {
   const lower = filePath.toLowerCase();
   let endpoint: string;
+  let sizeLimit: number;
+  const key = licenseKey || process.env.JARTOOLS_LICENSE_KEY;
   if (lower.endsWith(".jar") || lower.endsWith(".zip")) {
     endpoint = "jar-report";
+    sizeLimit = key ? PRO_JAR_SIZE_LIMIT : FREE_JAR_SIZE_LIMIT;
   } else if (lower.endsWith(".class")) {
     endpoint = "class-report";
+    sizeLimit = CLASS_SIZE_LIMIT;
   } else {
     throw new Error("Only .jar, .zip, or .class files are supported.");
   }
 
-  const buffer = await readFile(filePath);
-  const blob = new Blob([buffer]);
+  const fileStat = await stat(filePath);
+  if (!fileStat.isFile()) {
+    throw new Error("file_path must point to a regular file.");
+  }
+  if (fileStat.size > sizeLimit) {
+    throw new Error(`File exceeds the ${sizeLimit / 1024 / 1024}MB scanner limit.`);
+  }
+
+  const blob = await openAsBlob(filePath);
   const formData = new FormData();
   formData.append("file", blob, basename(filePath));
 
-  const key = licenseKey || process.env.JARTOOLS_LICENSE_KEY;
   const headers: Record<string, string> = {};
   if (key) {
     headers["X-License-Key"] = key;
@@ -86,9 +101,19 @@ export async function scanJarSecurity(
     method: "POST",
     body: formData,
     headers,
+    signal: AbortSignal.timeout(SCAN_TIMEOUT_MS),
   });
 
-  const payload = (await response.json()) as ScanResult;
+  let payload: ScanResult;
+  try {
+    payload = (await response.json()) as ScanResult;
+  } catch {
+    throw new Error(
+      response.ok
+        ? "jar.tools returned an invalid JSON response."
+        : `jar.tools scan failed (HTTP ${response.status}).`
+    );
+  }
 
   if (response.status === 429) {
     const parts = [payload.message || "jar.tools security-scan rate limit reached."];
@@ -102,7 +127,7 @@ export async function scanJarSecurity(
     throw new Error(parts.join(" "));
   }
 
-  if (!response.ok || payload.success === false) {
+  if (!response.ok || payload.success !== true) {
     throw new Error(payload.error || `jar.tools scan failed (HTTP ${response.status}).`);
   }
 
@@ -141,6 +166,10 @@ function formatScanSummary(filePath: string, result: ScanResult): string {
     .join("\n");
 }
 
+export function formatScanDetails(result: ScanResult): string {
+  return JSON.stringify(result, null, 2);
+}
+
 const server = new Server(
   { name: "jar-tools-mcp", version: "0.1.0" },
   { capabilities: { tools: {} } }
@@ -168,7 +197,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       return {
         content: [
           { type: "text", text: summary },
-          { type: "text", text: JSON.stringify(result.data ?? result, null, 2) },
+          { type: "text", text: formatScanDetails(result) },
         ],
       };
     }
