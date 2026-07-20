@@ -1,0 +1,43 @@
+{
+  "name": "@igorstechnoclub/jar-tools-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for the jar.tools JAR security scanner — scan .jar/.class files for supply-chain risk from an AI agent",
+  "main": "dist/index.js",
+  "type": "module",
+  "bin": {
+    "jar-tools-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gogainda/jar-tools-mcp.git"
+  },
+  "author": "igorstechnoclub",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsc --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "postinstall": "echo '\\n✨ jar-tools-mcp installed!\\n🔍 Scan a JAR: ask your agent to scan_jar_security on a local .jar file\\n🔑 Optional Pro license: export JARTOOLS_LICENSE_KEY=your-key\\n📖 API reference: https://jar.tools/kb/security-scan-api\\n'"
+  },
+  "keywords": [
+    "mcp",
+    "jar",
+    "java",
+    "security-scan",
+    "supply-chain",
+    "malware-detection"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^4.0.13"
+  }
+}
