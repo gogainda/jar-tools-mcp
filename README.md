@@ -25,6 +25,40 @@ No API key required for the default free tier.
 
 ## Configuration
 
+### Codex Setup
+
+Add the MCP server with the Codex CLI:
+
+```bash
+codex mcp add jar-tools -- npx -y @igorstechnoclub/jar-tools-mcp@latest
+```
+
+Verify that Codex can see it:
+
+```bash
+codex mcp list
+```
+
+You can also add it manually to `~/.codex/config.toml`:
+
+```toml
+[mcp_servers.jar-tools]
+command = "npx"
+args = ["-y", "@igorstechnoclub/jar-tools-mcp@latest"]
+```
+
+For Pro scans, export `JARTOOLS_LICENSE_KEY` before starting Codex and allow the
+MCP server to receive it:
+
+```toml
+[mcp_servers.jar-tools]
+command = "npx"
+args = ["-y", "@igorstechnoclub/jar-tools-mcp@latest"]
+env_vars = ["JARTOOLS_LICENSE_KEY"]
+```
+
+In an active Codex session, use `/mcp` to confirm that `jar-tools` is connected.
+
 ### Claude Code Setup
 
 Add the MCP server using the CLI:
