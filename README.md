@@ -18,10 +18,11 @@ MCP server for [jar.tools](https://jar.tools)' JAR security scanner. Scan a loca
 ## Installation
 
 ```bash
-npm install -g @igorstechnoclub/jar-tools-mcp
+npm install -g github:gogainda/jar-tools-mcp
 ```
 
-No API key required for the default free tier.
+Until the npm registry release is available, this installs directly from the
+public GitHub repository. No API key is required for the default free tier.
 
 ## Configuration
 
@@ -30,7 +31,7 @@ No API key required for the default free tier.
 Add the MCP server with the Codex CLI:
 
 ```bash
-codex mcp add jar-tools -- npx -y @igorstechnoclub/jar-tools-mcp@latest
+codex mcp add jar-tools -- npx -y github:gogainda/jar-tools-mcp
 ```
 
 Verify that Codex can see it:
@@ -44,7 +45,7 @@ You can also add it manually to `~/.codex/config.toml`:
 ```toml
 [mcp_servers.jar-tools]
 command = "npx"
-args = ["-y", "@igorstechnoclub/jar-tools-mcp@latest"]
+args = ["-y", "github:gogainda/jar-tools-mcp"]
 ```
 
 For Pro scans, export `JARTOOLS_LICENSE_KEY` before starting Codex and allow the
@@ -53,7 +54,7 @@ MCP server to receive it:
 ```toml
 [mcp_servers.jar-tools]
 command = "npx"
-args = ["-y", "@igorstechnoclub/jar-tools-mcp@latest"]
+args = ["-y", "github:gogainda/jar-tools-mcp"]
 env_vars = ["JARTOOLS_LICENSE_KEY"]
 ```
 
@@ -64,7 +65,7 @@ In an active Codex session, use `/mcp` to confirm that `jar-tools` is connected.
 Add the MCP server using the CLI:
 
 ```bash
-claude mcp add jar-tools -- npx -y @igorstechnoclub/jar-tools-mcp@latest
+claude mcp add jar-tools -- npx -y github:gogainda/jar-tools-mcp
 ```
 
 Or add manually to `~/.claude/claude_desktop_config.json`:
@@ -74,7 +75,7 @@ Or add manually to `~/.claude/claude_desktop_config.json`:
   "mcpServers": {
     "jar-tools": {
       "command": "npx",
-      "args": ["-y", "@igorstechnoclub/jar-tools-mcp@latest"]
+      "args": ["-y", "github:gogainda/jar-tools-mcp"]
     }
   }
 }

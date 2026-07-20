@@ -21,6 +21,7 @@
   "author": "igorstechnoclub",
   "scripts": {
     "build": "tsc",
+    "prepare": "npm run build",
     "start": "node dist/index.js",
     "dev": "tsc --watch",
     "test": "vitest run --exclude 'dist/**'",
